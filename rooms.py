@@ -18,13 +18,13 @@ def join_room(room_id,uid,pw,name):
     return True
 
 def remove_player(room_id,uid):
-    room=rooms.get(room_id)
-    if not room: return None
-    room["players"].pop(uid,None)
-    room["clients"].pop(uid,None)
-    if uid==room["host"] and room["players"]:
-        room["host"]=next(iter(room["players"]))
-        return room["host"]
-    if not room["players"]:
+    r=rooms.get(room_id)
+    if not r: return None
+    r["players"].pop(uid,None)
+    r["clients"].pop(uid,None)
+    if uid==r["host"] and r["players"]:
+        r["host"]=next(iter(r["players"]))
+        return r["host"]
+    if not r["players"]:
         rooms.pop(room_id,None)
     return None

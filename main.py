@@ -25,13 +25,14 @@ async def broadcast_rooms():
         try:
             await c.send_json({
                 "type":"ROOM_LIST",
-                "rooms":[{"id":r,"host":rooms[r]["host"]} for r in rooms]
+                "rooms":[{"id":r} for r in rooms]
             })
         except: lobby_clients.remove(c)
 
 @app.websocket("/ws/{room_id}/{uid}")
 async def game_ws(ws:WebSocket,room_id:str,uid:str,pw:str=Query(""),name:str=Query("")):
     await ws.accept()
+
     if room_id not in rooms:
         create_room(room_id,uid,pw,name)
         await broadcast_rooms()
@@ -50,6 +51,22 @@ async def game_ws(ws:WebSocket,room_id:str,uid:str,pw:str=Query(""),name:str=Que
     try:
         while True:
             d=json.loads(await ws.receive_text())
+
+            if d["type"]=="PLACE_BET":
+                p=room["players"][uid]
+                icon,amt=d["icon"],int(d["amount"])
+                if icon in ICONS and p["money"]>=amt>0:
+                    p["money"]-=amt
+                    p["bets"][icon]=p["bets"].get(icon,0)+amt
+                    for c in room["clients"].values():
+                        await c.send_json({
+                            "type":"BET_UPDATE",
+                            "uid":uid,
+                            "icon":icon,
+                            "amount":p["bets"][icon],
+                            "money":p["money"]
+                        })
+
             if d["type"]=="HOST_ROLL" and uid==room["host"]:
                 dice=roll_dice()
                 for c in room["clients"].values():
